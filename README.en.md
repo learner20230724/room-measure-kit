@@ -105,4 +105,4 @@ MIT
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=learner20230724/room-measure-kit&type=Date)](https://www.star-history.com/#learner20230724/room-measure-kit&Date)
+The repository is still new. I will add the chart after it has real star history, instead of showing an empty panel.
