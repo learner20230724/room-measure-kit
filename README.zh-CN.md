@@ -105,4 +105,4 @@ MIT
 
 ## Star History
 
-仓库还比较新，等有实际 star 数据后再放图表，先不展示空白图。
+[![Star History Chart](https://api.star-history.com/svg?repos=learner20230724/room-measure-kit&type=Date)](https://www.star-history.com/#learner20230724/room-measure-kit&Date)
