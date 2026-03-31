@@ -1,5 +1,7 @@
 # Room Measure Kit
 
+中文优先 · [English](./README.en.md)
+
 [![Validate](https://github.com/learner20230724/room-measure-kit/actions/workflows/validate.yml/badge.svg)](https://github.com/learner20230724/room-measure-kit/actions/workflows/validate.yml)
 [![Deploy to GitHub Pages](https://github.com/learner20230724/room-measure-kit/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/learner20230724/room-measure-kit/actions/workflows/deploy-pages.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
@@ -80,6 +82,10 @@ npm run preview
 3. 向 `main` 推送，或手动触发 workflow
 
 由于 Vite 已配置 `base: './'`，生成后的 `dist/` 也能直接丢到其他静态托管环境里使用，不依赖特定仓库路径。
+
+## 英文版
+
+英文说明见：[README.en.md](./README.en.md)
 
 ## 说明
 

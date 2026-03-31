@@ -1,60 +1,62 @@
 # Room Measure Kit
 
+中文优先 · [English](./README.en.md)
+
 [![Validate](https://github.com/learner20230724/room-measure-kit/actions/workflows/validate.yml/badge.svg)](https://github.com/learner20230724/room-measure-kit/actions/workflows/validate.yml)
 [![Deploy to GitHub Pages](https://github.com/learner20230724/room-measure-kit/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/learner20230724/room-measure-kit/actions/workflows/deploy-pages.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=fff)](https://vite.dev/)
 [![React](https://img.shields.io/badge/React-19-20232a?logo=react&logoColor=61DAFB)](https://react.dev/)
 
-A small web tool for estimating room area, perimeter, wall area, flooring allowance, and paint usage.
+一个用于估算房间面积、周长、墙面面积、地板余量和涂料用量的小型网页工具。
 
-It is meant for the common case: a rectangular room, quick numbers, and a cleaner UI than the average one-off calculator.
+它解决的是很常见的场景：矩形房间、快速估算、界面干净一点，不想在一堆广告和跳转里找结果。
 
-## Why this exists
+## 为什么做它
 
-A quick landscape scan showed plenty of single-purpose tools already exist for flooring-only or paint-only estimation, plus a few hobby repos that stop at raw form inputs. The practical gap is not new math. It is a lightweight, decent-looking all-in-one page that is easy to host, easy to fork, and easy to screenshot in a public repo.
+简单看了一圈，同类里已经有不少“只算地板”或“只算涂料”的工具，也有一些开源仓库停留在很基础的表单页面。真正还算值得做的，不是公式本身，而是一个更统一、更轻量、可直接静态部署、也更适合公开展示的 all-in-one 页面。
 
-References checked before building:
+构建前参考了这些方向：
 
-- `CoreyMcCoy/flooring-calculator` on GitHub
-- `MikeTheWayne/Paint-Calculator` on GitHub
-- a few standalone flooring estimator pages with mixed UX quality
+- GitHub 上的 `CoreyMcCoy/flooring-calculator`
+- GitHub 上的 `MikeTheWayne/Paint-Calculator`
+- 一些独立的 flooring estimator 网页工具
 
-## What it does
+## 功能
 
-- switch between metric and imperial inputs, including paint coverage units
-- try built-in room preset chips for faster demos and screenshots
-- calculate floor area and room perimeter
-- calculate wall area from optional wall height
-- estimate flooring requirement with waste percentage
-- estimate paint requirement from a coverage rate
-- copy a compact result summary for chat or docs
-- keep the calculation logic covered by a small Vitest suite
-- ship as a static Vite + React app
+- 公制 / 英制输入切换，涂料覆盖率单位也会同步切换
+- 内置几组更适合 demo 和截图的房间 preset chips
+- 房间地面面积与周长计算
+- 根据墙高估算墙面面积
+- 按损耗比例估算地板需求
+- 按覆盖率估算涂料用量
+- 一键复制结果摘要，方便贴到聊天或文档里
+- 用一组轻量 Vitest 测试覆盖核心计算逻辑
+- 基于 Vite + React，适合静态托管
 
-## Screenshot
+## 截图
 
-A lightweight preview asset is included at `docs-preview.svg`.
+仓库里附带了一份轻量的预览资产：`docs-preview.svg`。
 
-A social sharing preview is also included at `public/social-preview.svg`, and `index.html` already ships with Open Graph and Twitter card metadata so the deployed link has a cleaner preview.
+另外还补了一张用于链接分享预览的 `public/social-preview.svg`，并且已经在 `index.html` 里接入 Open Graph / Twitter Card 元数据，后续部署后页面链接展示会更完整。
 
-If you want a real runtime screenshot instead of the preview card, run:
-
-```bash
-npm install
-npm run dev
-```
-
-Then open the local URL and capture the main viewport.
-
-## Local development
+如果后面要换成真实运行截图，直接本地执行：
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Validation
+打开本地页面后截取主视口即可。
+
+## 本地运行
+
+```bash
+npm install
+npm run dev
+```
+
+## 校验
 
 ```bash
 npm run lint
@@ -62,32 +64,36 @@ npm run test
 npm run build
 ```
 
-## Build
+## 构建
 
 ```bash
 npm run build
 npm run preview
 ```
 
-## Deploy
+## 部署
 
-A GitHub Pages workflow is included at `.github/workflows/deploy-pages.yml`.
+仓库已经附带 GitHub Pages 工作流：`.github/workflows/deploy-pages.yml`。
 
-After pushing the repository to GitHub:
+推到 GitHub 后：
 
-1. open **Settings → Pages**
-2. set **Source** to **GitHub Actions**
-3. push to `main` or run the workflow manually
+1. 打开 **Settings → Pages**
+2. 将 **Source** 设为 **GitHub Actions**
+3. 向 `main` 推送，或手动触发 workflow
 
-Because Vite is configured with `base: './'`, the generated build also works as a plain static bundle if you want to drop `dist/` into another static host.
+由于 Vite 已配置 `base: './'`，生成后的 `dist/` 也能直接丢到其他静态托管环境里使用，不依赖特定仓库路径。
 
-## Notes
+## 英文版
 
-- Wall area assumes four full walls and does not subtract doors or windows.
-- Paint usage is only a quick estimate. Real projects depend on coats, surface condition, and product coverage.
-- Flooring waste defaults to a practical planning allowance, not a guarantee.
+英文说明见：[README.en.md](./README.en.md)
 
-## Tech stack
+## 说明
+
+- 墙面面积默认按四面完整墙体计算，不扣除门窗。
+- 涂料结果只是快速估算，实际还会受涂刷遍数、基层状态和产品参数影响。
+- 地板损耗比例是规划值，不是精确承诺值。
+
+## 技术栈
 
 - React
 - TypeScript
