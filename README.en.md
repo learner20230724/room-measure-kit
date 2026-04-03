@@ -36,7 +36,7 @@ References checked before building:
 
 ## Screenshot
 
-A lightweight preview asset is included at `docs-preview.svg`.
+A preview screenshot is included at `docs-preview.png`.
 
 A social sharing preview is also included at `public/social-preview.svg`, and `index.html` already ships with Open Graph and Twitter card metadata so the deployed link has a cleaner preview.
 
