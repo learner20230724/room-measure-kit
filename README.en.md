@@ -71,6 +71,10 @@ npm run build
 npm run preview
 ```
 
+## Live Demo
+
+https://learner20230724.github.io/room-measure-kit/
+
 ## Deploy
 
 A GitHub Pages workflow is included at `.github/workflows/deploy-pages.yml`.

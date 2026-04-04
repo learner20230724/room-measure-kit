@@ -56,6 +56,10 @@ npm install
 npm run dev
 ```
 
+## 线上部署
+
+直接访问：https://learner20230724.github.io/room-measure-kit/
+
 ## 校验
 
 ```bash
