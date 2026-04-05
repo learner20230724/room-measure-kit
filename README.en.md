@@ -107,6 +107,11 @@ For Chinese-first documentation, see [README.md](./README.md).
 
 MIT
 
+## Other Resources
+
+- [CHANGELOG](./CHANGELOG.md) — version history
+- [ROADMAP](./ROADMAP.md) — project roadmap
+
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=learner20230724/room-measure-kit&type=Date)](https://www.star-history.com/#learner20230724/room-measure-kit&Date)

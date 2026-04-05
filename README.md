@@ -107,6 +107,11 @@ npm run preview
 
 MIT
 
+## 其他资源
+
+- [CHANGELOG](./CHANGELOG.md) — 版本变更记录
+- [ROADMAP](./ROADMAP.md) — 项目路线图
+
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=learner20230724/room-measure-kit&type=Date)](https://www.star-history.com/#learner20230724/room-measure-kit&Date)
