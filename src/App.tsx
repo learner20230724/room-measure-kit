@@ -202,6 +202,8 @@ function App() {
   const [theme, setTheme] = useState<'dark' | 'light'>(getStoredTheme)
   const [showHistory, setShowHistory] = useState(false)
   const [calcHistory, setCalcHistory] = useState<HistoryEntry[]>(() => loadHistory())
+  // Incremented on every input change to re-trigger CSS result animation
+  const [resultAnimKey, setResultAnimKey] = useState(0)
   // Track last saved sig to avoid duplicate saves on re-render
   const lastSavedRef = useRef<string>('')
   // Ref for the results panel (used by PNG/PDF export)
@@ -234,6 +236,11 @@ function App() {
     }
     const qs = encodeRoomState({ unit, length, width, height, wastePercent, paintCoverage })
     window.history.replaceState(null, '', '?' + qs)
+  }, [unit, length, width, height, wastePercent, paintCoverage])
+
+  // Re-trigger CSS animation when any input changes.
+  useEffect(() => {
+    setResultAnimKey(k => k + 1)
   }, [unit, length, width, height, wastePercent, paintCoverage])
 
   // Save to localStorage and update calcHistory state.
@@ -475,7 +482,7 @@ function App() {
             </div>
           </div>
 
-          <div className="result-grid">
+          <div className="result-grid" key={resultAnimKey}>
             <article>
               <span>Floor area</span>
               <strong>{formatNumber(unit === 'm' ? results.areaSqM : results.areaSqFt)} {areaUnit}</strong>

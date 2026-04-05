@@ -53,7 +53,7 @@ Checked items are shipped. Unchecked are ideas or in-progress.
 
 - [x] Dark / light theme toggle
 - [x] PWA support (offline-capable)
-- [ ] Animated result reveal
+- [x] Animated result reveal
 
 ---
 
