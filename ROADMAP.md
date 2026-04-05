@@ -52,7 +52,7 @@ Checked items are shipped. Unchecked are ideas or in-progress.
 ## M7 — Theming & Polish (ideas)
 
 - [x] Dark / light theme toggle
-- [ ] PWA support (offline-capable)
+- [x] PWA support (offline-capable)
 - [ ] Animated result reveal
 
 ---
