@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from 'react'
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import './App.css'
 import {
   calculateResults,
@@ -10,6 +10,57 @@ import {
 } from './lib/calculations'
 
 type NumericField = 'length' | 'width' | 'height' | 'wastePercent' | 'paintCoverage'
+
+// ── Calculation history ────────────────────────────────────────────────────────
+
+const HISTORY_KEY = 'room-measure-kit-history'
+const MAX_HISTORY = 20
+
+export interface HistoryEntry {
+  id: string
+  ts: number
+  unit: Unit
+  length: number
+  width: number
+  height: number
+  wastePercent: number
+  paintCoverage: number
+  // snapshot of computed values
+  areaSqM: number
+  areaSqFt: number
+  flooringSqM: number
+  flooringSqFt: number
+  paintLiters: number
+  paintGallons: number
+  wallAreaSqM: number
+  wallAreaSqFt: number
+}
+
+function loadHistory(): HistoryEntry[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY)
+    return raw ? (JSON.parse(raw) as HistoryEntry[]) : []
+  } catch {
+    return []
+  }
+}
+
+function saveHistory(entries: HistoryEntry[]) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(entries))
+  } catch {
+    // storage full or unavailable — silently skip
+  }
+}
+
+function fmtTime(ts: number) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(ts))
+}
 
 const presets: Preset[] = [
   { label: 'Small bedroom', note: 'Quick flooring check for a compact room', length: 3.2, width: 3, height: 2.6 },
@@ -91,18 +142,10 @@ function App() {
   const [paintCoverage, setPaintCoverage] = useState(_initial?.paintCoverage ?? 10)
   const [copied, setCopied] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
-
-  // Keep URL in sync with state (no history entry, just replace).
-  // Skip first mount — only write URL when user changes an input.
-  const isFirstRenderRef = useRef(true)
-  useEffect(() => {
-    if (isFirstRenderRef.current) {
-      isFirstRenderRef.current = false
-      return
-    }
-    const qs = encodeRoomState({ unit, length, width, height, wastePercent, paintCoverage })
-    history.replaceState(null, '', '?' + qs)
-  }, [unit, length, width, height, wastePercent, paintCoverage])
+  const [showHistory, setShowHistory] = useState(false)
+  const [calcHistory, setCalcHistory] = useState<HistoryEntry[]>(() => loadHistory())
+  // Track last saved sig to avoid duplicate saves on re-render
+  const lastSavedRef = useRef<string>('')
 
   const results = useMemo(() => {
     return calculateResults({
@@ -114,6 +157,68 @@ function App() {
       paintCoverage,
     })
   }, [height, length, paintCoverage, unit, wastePercent, width])
+
+  // Keep URL in sync with state (no history entry, just replace).
+  // Skip first mount — only write URL when user changes an input.
+  const isFirstRenderRef = useRef(true)
+  useEffect(() => {
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false
+      return
+    }
+    const qs = encodeRoomState({ unit, length, width, height, wastePercent, paintCoverage })
+    window.history.replaceState(null, '', '?' + qs)
+  }, [unit, length, width, height, wastePercent, paintCoverage])
+
+  // Save to localStorage and update calcHistory state.
+  // We track the previous history array in a ref so we can call setCalcHistory
+  // only when the new array reference differs (avoids cascading renders / lint error).
+  const prevHistoryRef = useRef<HistoryEntry[]>([])
+  useEffect(() => {
+    const entry: HistoryEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      ts: Date.now(),
+      unit,
+      length,
+      width,
+      height,
+      wastePercent,
+      paintCoverage,
+      areaSqM: results.areaSqM,
+      areaSqFt: results.areaSqFt,
+      flooringSqM: results.flooringSqM,
+      flooringSqFt: results.flooringSqFt,
+      paintLiters: results.paintLiters,
+      paintGallons: results.paintGallons,
+      wallAreaSqM: results.wallAreaSqM,
+      wallAreaSqFt: results.wallAreaSqFt,
+    }
+    const sig = `${unit}|${length}|${width}|${height}|${wastePercent}|${paintCoverage}`
+    if (sig === lastSavedRef.current) return
+    lastSavedRef.current = sig
+
+    const next = [entry, ...prevHistoryRef.current].slice(0, MAX_HISTORY)
+    saveHistory(next)
+    prevHistoryRef.current = next
+    setCalcHistory(next)
+  }, [unit, length, width, height, wastePercent, paintCoverage, results])
+
+  const clearHistory = useCallback(() => {
+    prevHistoryRef.current = []
+    saveHistory([])
+    setCalcHistory([])
+  }, [])
+
+  function restoreEntry(entry: HistoryEntry) {
+    lastSavedRef.current = `${entry.unit}|${entry.length}|${entry.width}|${entry.height}|${entry.wastePercent}|${entry.paintCoverage}`
+    setUnit(entry.unit)
+    setLength(entry.length)
+    setWidth(entry.width)
+    setHeight(entry.height)
+    setWastePercent(entry.wastePercent)
+    setPaintCoverage(entry.paintCoverage)
+    setShowHistory(false)
+  }
 
   const summary = useMemo(() => {
     return [
@@ -347,6 +452,56 @@ function App() {
             <li>Comparing metric and imperial measurements without a separate converter.</li>
             <li>Dropping a lightweight calculator into a static hosting setup.</li>
           </ul>
+        </div>
+
+        <div className="panel history-panel">
+          <div className="panel-header inline-header">
+            <div>
+              <h2>History</h2>
+              <p>Saved automatically — persists across page reloads.</p>
+            </div>
+            <div className="history-header-actions">
+              <button className="ghost-button" onClick={() => setShowHistory((v) => !v)} type="button">
+                {showHistory ? 'Hide' : `Show`} ({calcHistory.length})
+              </button>
+              {calcHistory.length > 0 && (
+                <button className="ghost-button ghost-danger" onClick={clearHistory} type="button">
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
+          {showHistory && (
+            calcHistory.length === 0 ? (
+              <p className="history-empty">No calculations saved yet. Enter room values to start a history.</p>
+            ) : (
+              <ul className="history-list">
+                {calcHistory.map((entry) => (
+                  <li key={entry.id} className="history-item">
+                    <button
+                      className="history-restore"
+                      onClick={() => restoreEntry(entry)}
+                      type="button"
+                      title={`Restore: ${entry.length}×${entry.width}×${entry.height} ${entry.unit}`}
+                    >
+                      <span className="history-meta">
+                        {fmtTime(entry.ts)}
+                        <span className="history-badge">{entry.unit}</span>
+                      </span>
+                      <span className="history-values">
+                        {formatNumber(entry.unit === 'm' ? entry.areaSqM : entry.areaSqFt)} {entry.unit === 'm' ? 'm²' : 'ft²'}
+                        {' · '}
+                        {formatNumber(entry.unit === 'm' ? entry.flooringSqM : entry.flooringSqFt)} {entry.unit === 'm' ? 'm²' : 'ft²'} flooring
+                        {' · '}
+                        {formatNumber(entry.unit === 'm' ? entry.paintLiters : entry.paintGallons)} {entry.unit === 'm' ? 'L' : 'gal'} paint
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )
+          )}
         </div>
       </section>
     </main>

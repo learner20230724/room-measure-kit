@@ -20,6 +20,7 @@
   --border: rgba(110, 129, 162, 0.22);
   --panel: rgba(255, 255, 255, 0.88);
   --surface-soft: rgba(244, 247, 252, 0.96);
+  --surface-soft-hover: rgba(236, 241, 250, 0.96);
   --accent-soft: rgba(24, 98, 255, 0.1);
   --accent-strong: #1862ff;
   --shadow: 0 18px 50px rgba(17, 30, 62, 0.08);
