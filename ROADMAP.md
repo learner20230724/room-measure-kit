@@ -39,7 +39,7 @@ Checked items are shipped. Unchecked are ideas or in-progress.
 
 ## M5 — Sharing & Persistence (ideas)
 
-- [ ] Shareable URL state (encode inputs in query string)
+- [x] Shareable URL state (encode inputs in query string)
 - [ ] Calculation history (localStorage)
 - [ ] Export result summary as PNG or PDF
 

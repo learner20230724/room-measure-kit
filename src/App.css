@@ -51,9 +51,10 @@
 
 .hero-actions {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
   justify-content: space-between;
-  gap: 20px;
 }
 
 .unit-toggle {

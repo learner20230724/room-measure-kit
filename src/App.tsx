@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import './App.css'
 import {
   calculateResults,
@@ -28,14 +28,81 @@ function formatNumber(value: number, digits = 2) {
   }).format(value)
 }
 
+// URL state — encode/decode room inputs as query string params
+function encodeRoomState(params: {
+  unit: Unit
+  length: number
+  width: number
+  height: number
+  wastePercent: number
+  paintCoverage: number
+}): string {
+  const sp = new URLSearchParams()
+  sp.set('u', params.unit)
+  sp.set('l', String(Math.round(params.length * 100) / 100))
+  sp.set('w', String(Math.round(params.width * 100) / 100))
+  sp.set('h', String(Math.round(params.height * 100) / 100))
+  sp.set('wp', String(Math.round(params.wastePercent * 10) / 10))
+  sp.set('pc', String(Math.round(params.paintCoverage * 10) / 10))
+  return sp.toString()
+}
+
+function decodeRoomState(search: string): {
+  unit: Unit
+  length: number
+  width: number
+  height: number
+  wastePercent: number
+  paintCoverage: number
+} | null {
+  try {
+    const sp = new URLSearchParams(search)
+    const u = sp.get('u')
+    const l = parseFloat(sp.get('l') ?? '')
+    const w = parseFloat(sp.get('w') ?? '')
+    const h = parseFloat(sp.get('h') ?? '')
+    const wp = parseFloat(sp.get('wp') ?? '')
+    const pc = parseFloat(sp.get('pc') ?? '')
+    if (u !== 'm' && u !== 'ft') return null
+    if (!Number.isFinite(l) || l <= 0) return null
+    if (!Number.isFinite(w) || w <= 0) return null
+    if (!Number.isFinite(h) || h <= 0) return null
+    if (!Number.isFinite(wp) || wp < 0) return null
+    if (!Number.isFinite(pc) || pc <= 0) return null
+    return { unit: u, length: l, width: w, height: h, wastePercent: wp, paintCoverage: pc }
+  } catch {
+    return null
+  }
+}
+
+function getInitialRoomState() {
+  if (typeof window === 'undefined') return null
+  return decodeRoomState(window.location.search)
+}
+
+const _initial = getInitialRoomState()
+
 function App() {
-  const [unit, setUnit] = useState<Unit>('m')
-  const [length, setLength] = useState(5.2)
-  const [width, setWidth] = useState(3.8)
-  const [height, setHeight] = useState(2.7)
-  const [wastePercent, setWastePercent] = useState(8)
-  const [paintCoverage, setPaintCoverage] = useState(10)
+  const [unit, setUnit] = useState<Unit>(_initial?.unit ?? 'm')
+  const [length, setLength] = useState(_initial?.length ?? 5.2)
+  const [width, setWidth] = useState(_initial?.width ?? 3.8)
+  const [height, setHeight] = useState(_initial?.height ?? 2.7)
+  const [wastePercent, setWastePercent] = useState(_initial?.wastePercent ?? 8)
+  const [paintCoverage, setPaintCoverage] = useState(_initial?.paintCoverage ?? 10)
   const [copied, setCopied] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
+
+  // Keep URL in sync with state (no history entry, just replace).
+  // Skip first mount — only write URL when user changes an input.
+  const isFirstRenderRef = useRef(true)
+  useEffect(() => {
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false
+      return
+    }
+    const qs = encodeRoomState({ unit, length, width, height, wastePercent, paintCoverage })
+    history.replaceState(null, '', '?' + qs)
+  }, [unit, length, width, height, wastePercent, paintCoverage])
 
   const results = useMemo(() => {
     return calculateResults({
@@ -108,6 +175,16 @@ function App() {
     }
   }
 
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setLinkCopied(true)
+      window.setTimeout(() => setLinkCopied(false), 1500)
+    } catch {
+      setLinkCopied(false)
+    }
+  }
+
   const dimensionUnit = unit
   const areaUnit = unit === 'm' ? 'm²' : 'ft²'
 
@@ -139,6 +216,9 @@ function App() {
               Imperial
             </button>
           </div>
+          <button className="copy-button" onClick={copyLink} type="button" title="Copy a shareable link with current room inputs">
+            {linkCopied ? 'Link copied' : 'Share link'}
+          </button>
           <div className="preset-row" aria-label="Try a preset room">
             {presets.map((preset) => (
               <button key={preset.label} className="preset-chip" onClick={() => applyPreset(preset)} type="button">
