@@ -38,7 +38,7 @@
 
 ## 截图
 
-仓库里附带了一份预览截图：`docs-preview.png`。
+![Room Measure Kit — 房间输入面板与计算结果](docs-preview.png)
 
 另外还补了一张用于链接分享预览的 `public/social-preview.svg`，并且已经在 `index.html` 里接入 Open Graph / Twitter Card 元数据，后续部署后页面链接展示会更完整。
 

@@ -38,7 +38,7 @@ References checked before building:
 
 ## Screenshot
 
-A preview screenshot is included at `docs-preview.png`.
+![Room Measure Kit — Room input panel with calculated results](docs-preview.png)
 
 A social sharing preview is also included at `public/social-preview.svg`, and `index.html` already ships with Open Graph and Twitter card metadata so the deployed link has a cleaner preview.
 
