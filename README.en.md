@@ -26,6 +26,7 @@ References checked before building:
 
 - 🌗 dark / light theme toggle (toolbar button, theme preference persisted to localStorage)
 - try built-in room preset chips for faster demos and screenshots
+- rectangular, L-shaped, and circular room support (shape selector in toolbar)
 - calculate floor area and room perimeter
 - calculate wall area from optional wall height
 - estimate flooring requirement with waste percentage

@@ -4,9 +4,12 @@ import { jsPDF } from 'jspdf'
 import './App.css'
 import {
   calculateResults,
+  calculateLShapeResults,
+  calculateCircularResults,
   FEET_TO_METERS,
   metersToFeet,
   type Preset,
+  type RoomShape,
   SQUARE_FEET_PER_SQUARE_METER_PER_GALLON,
   type Unit,
 } from './lib/calculations'
@@ -41,12 +44,20 @@ const MAX_HISTORY = 20
 export interface HistoryEntry {
   id: string
   ts: number
+  shape: RoomShape
   unit: Unit
   length: number
   width: number
   height: number
   wastePercent: number
   paintCoverage: number
+  // L-shape
+  aLength?: number
+  aWidth?: number
+  bLength?: number
+  bWidth?: number
+  // Circular
+  radius?: number
   // snapshot of computed values
   areaSqM: number
   areaSqFt: number
@@ -139,45 +150,86 @@ function exportResultsPdf(element: HTMLElement, filename = 'room-measure.pdf') {
 // URL state — encode/decode room inputs as query string params
 function encodeRoomState(params: {
   unit: Unit
+  shape: RoomShape
   length: number
   width: number
   height: number
   wastePercent: number
   paintCoverage: number
+  aLength?: number
+  aWidth?: number
+  bLength?: number
+  bWidth?: number
+  radius?: number
 }): string {
   const sp = new URLSearchParams()
   sp.set('u', params.unit)
+  sp.set('s', params.shape)
   sp.set('l', String(Math.round(params.length * 100) / 100))
   sp.set('w', String(Math.round(params.width * 100) / 100))
   sp.set('h', String(Math.round(params.height * 100) / 100))
   sp.set('wp', String(Math.round(params.wastePercent * 10) / 10))
   sp.set('pc', String(Math.round(params.paintCoverage * 10) / 10))
+  if (params.shape === 'lshape' && params.aLength !== undefined) {
+    sp.set('al', String(Math.round(params.aLength * 100) / 100))
+    sp.set('aw', String(Math.round(params.aWidth! * 100) / 100))
+    sp.set('bl', String(Math.round(params.bLength! * 100) / 100))
+    sp.set('bw', String(Math.round(params.bWidth! * 100) / 100))
+  }
+  if (params.shape === 'circular' && params.radius !== undefined) {
+    sp.set('r', String(Math.round(params.radius * 100) / 100))
+  }
   return sp.toString()
 }
 
 function decodeRoomState(search: string): {
   unit: Unit
+  shape: RoomShape
   length: number
   width: number
   height: number
   wastePercent: number
   paintCoverage: number
+  aLength?: number
+  aWidth?: number
+  bLength?: number
+  bWidth?: number
+  radius?: number
 } | null {
   try {
     const sp = new URLSearchParams(search)
-    const u = sp.get('u')
+    const u = sp.get('u') as Unit | null
+    const s = sp.get('s') as RoomShape | null
     const l = parseFloat(sp.get('l') ?? '')
     const w = parseFloat(sp.get('w') ?? '')
     const h = parseFloat(sp.get('h') ?? '')
     const wp = parseFloat(sp.get('wp') ?? '')
     const pc = parseFloat(sp.get('pc') ?? '')
     if (u !== 'm' && u !== 'ft') return null
+    if (s !== 'rect' && s !== 'lshape' && s !== 'circular') return null
     if (!Number.isFinite(l) || l <= 0) return null
     if (!Number.isFinite(w) || w <= 0) return null
     if (!Number.isFinite(h) || h <= 0) return null
     if (!Number.isFinite(wp) || wp < 0) return null
     if (!Number.isFinite(pc) || pc <= 0) return null
-    return { unit: u, length: l, width: w, height: h, wastePercent: wp, paintCoverage: pc }
+    const result = { unit: u, shape: s, length: l, width: w, height: h, wastePercent: wp, paintCoverage: pc }
+    if (s === 'lshape') {
+      const al = parseFloat(sp.get('al') ?? '')
+      const aw = parseFloat(sp.get('aw') ?? '')
+      const bl = parseFloat(sp.get('bl') ?? '')
+      const bw = parseFloat(sp.get('bw') ?? '')
+      if (!Number.isFinite(al) || al <= 0) return null
+      if (!Number.isFinite(aw) || aw <= 0) return null
+      if (!Number.isFinite(bl) || bl <= 0) return null
+      if (!Number.isFinite(bw) || bw <= 0) return null
+      return { ...result, aLength: al, aWidth: aw, bLength: bl, bWidth: bw }
+    }
+    if (s === 'circular') {
+      const r = parseFloat(sp.get('r') ?? '')
+      if (!Number.isFinite(r) || r <= 0) return null
+      return { ...result, radius: r }
+    }
+    return result
   } catch {
     return null
   }
@@ -192,9 +244,19 @@ const _initial = getInitialRoomState()
 
 function App() {
   const [unit, setUnit] = useState<Unit>(_initial?.unit ?? 'm')
+  const [shape, setShape] = useState<RoomShape>(_initial?.shape ?? 'rect')
+  // Rectangular
   const [length, setLength] = useState(_initial?.length ?? 5.2)
   const [width, setWidth] = useState(_initial?.width ?? 3.8)
   const [height, setHeight] = useState(_initial?.height ?? 2.7)
+  // L-shape
+  const [aLength, setALength] = useState(_initial?.aLength ?? 5.2)
+  const [aWidth, setAWidth] = useState(_initial?.aWidth ?? 3.8)
+  const [bLength, setBLength] = useState(_initial?.bLength ?? 2.5)
+  const [bWidth, setBWidth] = useState(_initial?.bWidth ?? 2.0)
+  // Circular
+  const [radius, setRadius] = useState(_initial?.radius ?? 3.0)
+  // Shared
   const [wastePercent, setWastePercent] = useState(_initial?.wastePercent ?? 8)
   const [paintCoverage, setPaintCoverage] = useState(_initial?.paintCoverage ?? 10)
   const [copied, setCopied] = useState(false)
@@ -210,15 +272,14 @@ function App() {
   const resultPanelRef = useRef<HTMLDivElement>(null)
 
   const results = useMemo(() => {
-    return calculateResults({
-      unit,
-      length,
-      width,
-      height,
-      wastePercent,
-      paintCoverage,
-    })
-  }, [height, length, paintCoverage, unit, wastePercent, width])
+    if (shape === 'lshape') {
+      return calculateLShapeResults({ unit, aLength, aWidth, bLength, bWidth, height, wastePercent, paintCoverage })
+    }
+    if (shape === 'circular') {
+      return calculateCircularResults({ unit, radius, height, wastePercent, paintCoverage })
+    }
+    return calculateResults({ unit, length, width, height, wastePercent, paintCoverage })
+  }, [shape, unit, length, width, height, aLength, aWidth, bLength, bWidth, radius, wastePercent, paintCoverage])
 
   // Keep URL in sync with state (no history entry, just replace).
   // Skip first mount — only write URL when user changes an input.
@@ -234,14 +295,14 @@ function App() {
       isFirstRenderRef.current = false
       return
     }
-    const qs = encodeRoomState({ unit, length, width, height, wastePercent, paintCoverage })
+    const qs = encodeRoomState({ unit, shape, length, width, height, wastePercent, paintCoverage, aLength, aWidth, bLength, bWidth, radius })
     window.history.replaceState(null, '', '?' + qs)
-  }, [unit, length, width, height, wastePercent, paintCoverage])
+  }, [unit, shape, length, width, height, wastePercent, paintCoverage, aLength, aWidth, bLength, bWidth, radius])
 
   // Re-trigger CSS animation when any input changes.
   useEffect(() => {
     setResultAnimKey(k => k + 1)
-  }, [unit, length, width, height, wastePercent, paintCoverage])
+  }, [unit, shape, length, width, height, wastePercent, paintCoverage, aLength, aWidth, bLength, bWidth, radius])
 
   // Save to localStorage and update calcHistory state.
   // We track the previous history array in a ref so we can call setCalcHistory
@@ -251,12 +312,15 @@ function App() {
     const entry: HistoryEntry = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       ts: Date.now(),
+      shape,
       unit,
       length,
       width,
       height,
       wastePercent,
       paintCoverage,
+      ...(shape === 'lshape' ? { aLength, aWidth, bLength, bWidth } : {}),
+      ...(shape === 'circular' ? { radius } : {}),
       areaSqM: results.areaSqM,
       areaSqFt: results.areaSqFt,
       flooringSqM: results.flooringSqM,
@@ -266,7 +330,7 @@ function App() {
       wallAreaSqM: results.wallAreaSqM,
       wallAreaSqFt: results.wallAreaSqFt,
     }
-    const sig = `${unit}|${length}|${width}|${height}|${wastePercent}|${paintCoverage}`
+    const sig = `${shape}|${unit}|${length}|${width}|${height}|${wastePercent}|${paintCoverage}|${aLength}|${aWidth}|${bLength}|${bWidth}|${radius}`
     if (sig === lastSavedRef.current) return
     lastSavedRef.current = sig
 
@@ -274,7 +338,7 @@ function App() {
     saveHistory(next)
     prevHistoryRef.current = next
     setCalcHistory(next)
-  }, [unit, length, width, height, wastePercent, paintCoverage, results])
+  }, [shape, unit, length, width, height, wastePercent, paintCoverage, aLength, aWidth, bLength, bWidth, radius, results])
 
   const clearHistory = useCallback(() => {
     prevHistoryRef.current = []
@@ -283,25 +347,36 @@ function App() {
   }, [])
 
   function restoreEntry(entry: HistoryEntry) {
-    lastSavedRef.current = `${entry.unit}|${entry.length}|${entry.width}|${entry.height}|${entry.wastePercent}|${entry.paintCoverage}`
+    lastSavedRef.current = `${entry.shape}|${entry.unit}|${entry.length}|${entry.width}|${entry.height}|${entry.wastePercent}|${entry.paintCoverage}|${entry.aLength ?? 0}|${entry.aWidth ?? 0}|${entry.bLength ?? 0}|${entry.bWidth ?? 0}|${entry.radius ?? 0}`
+    setShape(entry.shape)
     setUnit(entry.unit)
     setLength(entry.length)
     setWidth(entry.width)
     setHeight(entry.height)
     setWastePercent(entry.wastePercent)
     setPaintCoverage(entry.paintCoverage)
+    if (entry.shape === 'lshape') {
+      setALength(entry.aLength ?? 5.2)
+      setAWidth(entry.aWidth ?? 3.8)
+      setBLength(entry.bLength ?? 2.5)
+      setBWidth(entry.bWidth ?? 2.0)
+    }
+    if (entry.shape === 'circular') {
+      setRadius(entry.radius ?? 3.0)
+    }
     setShowHistory(false)
   }
 
   const summary = useMemo(() => {
+    const shapeLabel = shape === 'lshape' ? 'L-shaped' : shape === 'circular' ? 'Circular' : 'Rectangular'
     return [
-      `Room: ${formatNumber(results.areaSqM)} m² (${formatNumber(results.areaSqFt)} ft²)`,
-      `Perimeter: ${formatNumber(results.perimeterM)} m (${formatNumber(results.perimeterFt)} ft)`,
+      `${shapeLabel} room: ${formatNumber(results.areaSqM)} m² (${formatNumber(results.areaSqFt)} ft²)`,
+      `Perimeter/circumference: ${formatNumber(results.perimeterM)} m (${formatNumber(results.perimeterFt)} ft)`,
       `Wall area: ${formatNumber(results.wallAreaSqM)} m²`,
       `Flooring with ${formatNumber(wastePercent, 1)}% waste: ${formatNumber(results.flooringSqM)} m²`,
       `Paint needed at ${formatNumber(paintCoverage, 1)} ${unit === 'm' ? 'm²/L' : 'ft²/gal'}: ${formatNumber(unit === 'm' ? results.paintLiters : results.paintGallons)} ${unit === 'm' ? 'L' : 'gal'}`,
     ].join('\n')
-  }, [paintCoverage, results.areaSqFt, results.areaSqM, results.flooringSqM, results.paintGallons, results.paintLiters, results.perimeterFt, results.perimeterM, results.wallAreaSqM, unit, wastePercent])
+  }, [shape, paintCoverage, results.areaSqFt, results.areaSqM, results.flooringSqM, results.paintGallons, results.paintLiters, results.perimeterFt, results.perimeterM, results.wallAreaSqM, unit, wastePercent])
 
   function handleUnitChange(nextUnit: Unit) {
     if (nextUnit === unit) return
@@ -315,9 +390,16 @@ function App() {
     setLength((value) => Number(convertDimension(value).toFixed(2)))
     setWidth((value) => Number(convertDimension(value).toFixed(2)))
     setHeight((value) => Number(convertDimension(value).toFixed(2)))
+    setALength((value) => Number(convertDimension(value).toFixed(2)))
+    setAWidth((value) => Number(convertDimension(value).toFixed(2)))
+    setBLength((value) => Number(convertDimension(value).toFixed(2)))
+    setBWidth((value) => Number(convertDimension(value).toFixed(2)))
+    setRadius((value) => Number(convertDimension(value).toFixed(2)))
     setPaintCoverage((value) => Number(convertCoverage(value).toFixed(2)))
     setUnit(nextUnit)
   }
+
+  type ShapeField = 'aLength' | 'aWidth' | 'bLength' | 'bWidth' | 'radius'
 
   function handleNumberChange(field: NumericField, value: string) {
     const next = Number(value)
@@ -330,7 +412,18 @@ function App() {
     if (field === 'paintCoverage') setPaintCoverage(safeValue)
   }
 
+  function handleShapeNumberChange(field: ShapeField, value: string) {
+    const next = Number(value)
+    const safeValue = Number.isFinite(next) ? next : 0
+    if (field === 'aLength') setALength(safeValue)
+    if (field === 'aWidth') setAWidth(safeValue)
+    if (field === 'bLength') setBLength(safeValue)
+    if (field === 'bWidth') setBWidth(safeValue)
+    if (field === 'radius') setRadius(safeValue)
+  }
+
   function applyPreset(preset: Preset) {
+    setShape('rect')
     if (unit === 'm') {
       setLength(preset.length)
       setWidth(preset.width)
@@ -373,11 +466,22 @@ function App() {
           <span className="eyebrow">Room Measure Kit</span>
           <h1>Measure a room, then get flooring and paint estimates in one pass.</h1>
           <p className="hero-copy">
-            Lightweight room math for quick renovation planning. Built for rectangular rooms,
-            with unit switching, waste allowance, and a shareable summary.
+            Room math for rectangular, L-shaped, and circular rooms. Unit switching, waste
+            allowance, and a shareable summary.
           </p>
         </div>
         <div className="hero-actions">
+          <div className="shape-toggle" role="tablist" aria-label="Choose room shape">
+            <button className={shape === 'rect' ? 'active' : ''} onClick={() => setShape('rect')} type="button">
+              ▭ Rectangular
+            </button>
+            <button className={shape === 'lshape' ? 'active' : ''} onClick={() => setShape('lshape')} type="button">
+              ⅂ L-shaped
+            </button>
+            <button className={shape === 'circular' ? 'active' : ''} onClick={() => setShape('circular')} type="button">
+              ○ Circular
+            </button>
+          </div>
           <div className="unit-toggle" role="tablist" aria-label="Choose unit">
             <button
               className={unit === 'm' ? 'active' : ''}
@@ -405,58 +509,128 @@ function App() {
           >
             {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
           </button>
-          <div className="preset-row" aria-label="Try a preset room">
-            {presets.map((preset) => (
-              <button key={preset.label} className="preset-chip" onClick={() => applyPreset(preset)} type="button">
-                <strong>{preset.label}</strong>
-                <span>{preset.note}</span>
-              </button>
-            ))}
-          </div>
+          {shape === 'rect' && (
+            <div className="preset-row" aria-label="Try a preset room">
+              {presets.map((preset) => (
+                <button key={preset.label} className="preset-chip" onClick={() => applyPreset(preset)} type="button">
+                  <strong>{preset.label}</strong>
+                  <span>{preset.note}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
       <section className="workspace-grid">
-        <div className="panel input-panel">
-          <div className="panel-header">
-            <h2>Room inputs</h2>
-            <p>Enter the room size and coverage assumptions.</p>
+        {shape === 'rect' && (
+          <div className="panel input-panel">
+            <div className="panel-header">
+              <h2>Rectangular room</h2>
+              <p>Standard four-wall room with one open area.</p>
+            </div>
+            <div className="field-grid">
+              <label>
+                <span>Length ({dimensionUnit})</span>
+                <input min="0" step="0.1" type="number" value={length} onChange={(event) => handleNumberChange('length', event.target.value)} />
+              </label>
+              <label>
+                <span>Width ({dimensionUnit})</span>
+                <input min="0" step="0.1" type="number" value={width} onChange={(event) => handleNumberChange('width', event.target.value)} />
+              </label>
+              <label>
+                <span>Wall height ({dimensionUnit})</span>
+                <input min="0" step="0.1" type="number" value={height} onChange={(event) => handleNumberChange('height', event.target.value)} />
+              </label>
+              <label>
+                <span>Flooring waste (%)</span>
+                <input min="0" step="0.5" type="number" value={wastePercent} onChange={(event) => handleNumberChange('wastePercent', event.target.value)} />
+              </label>
+              <label className="field-span-2">
+                <span>Paint coverage ({unit === 'm' ? 'm² per liter' : 'ft² per gallon'})</span>
+                <input min="0.1" step="0.1" type="number" value={paintCoverage} onChange={(event) => handleNumberChange('paintCoverage', event.target.value)} />
+              </label>
+            </div>
           </div>
+        )}
 
-          <div className="field-grid">
-            <label>
-              <span>Length ({dimensionUnit})</span>
-              <input min="0" step="0.1" type="number" value={length} onChange={(event) => handleNumberChange('length', event.target.value)} />
-            </label>
-            <label>
-              <span>Width ({dimensionUnit})</span>
-              <input min="0" step="0.1" type="number" value={width} onChange={(event) => handleNumberChange('width', event.target.value)} />
-            </label>
-            <label>
-              <span>Wall height ({dimensionUnit})</span>
-              <input min="0" step="0.1" type="number" value={height} onChange={(event) => handleNumberChange('height', event.target.value)} />
-            </label>
-            <label>
-              <span>Flooring waste (%)</span>
-              <input min="0" step="0.5" type="number" value={wastePercent} onChange={(event) => handleNumberChange('wastePercent', event.target.value)} />
-            </label>
-            <label className="field-span-2">
-              <span>Paint coverage ({unit === 'm' ? 'm² per liter' : 'ft² per gallon'})</span>
-              <input
-                min="0.1"
-                step="0.1"
-                type="number"
-                value={paintCoverage}
-                onChange={(event) => handleNumberChange('paintCoverage', event.target.value)}
-              />
-            </label>
+        {shape === 'lshape' && (
+          <div className="panel input-panel">
+            <div className="panel-header">
+              <h2>L-shaped room</h2>
+              <p>Two joined rectangles — enter each section's dimensions.</p>
+            </div>
+            <div className="lshape-grid">
+              <div className="lshape-section">
+                <h3>Section A</h3>
+                <label>
+                  <span>Length ({dimensionUnit})</span>
+                  <input min="0" step="0.1" type="number" value={aLength} onChange={(event) => handleShapeNumberChange('aLength', event.target.value)} />
+                </label>
+                <label>
+                  <span>Width ({dimensionUnit})</span>
+                  <input min="0" step="0.1" type="number" value={aWidth} onChange={(event) => handleShapeNumberChange('aWidth', event.target.value)} />
+                </label>
+              </div>
+              <div className="lshape-section">
+                <h3>Section B</h3>
+                <label>
+                  <span>Length ({dimensionUnit})</span>
+                  <input min="0" step="0.1" type="number" value={bLength} onChange={(event) => handleShapeNumberChange('bLength', event.target.value)} />
+                </label>
+                <label>
+                  <span>Width ({dimensionUnit})</span>
+                  <input min="0" step="0.1" type="number" value={bWidth} onChange={(event) => handleShapeNumberChange('bWidth', event.target.value)} />
+                </label>
+              </div>
+            </div>
+            <div className="field-grid" style={{ marginTop: '1rem' }}>
+              <label>
+                <span>Wall height ({dimensionUnit})</span>
+                <input min="0" step="0.1" type="number" value={height} onChange={(event) => handleNumberChange('height', event.target.value)} />
+              </label>
+              <label>
+                <span>Flooring waste (%)</span>
+                <input min="0" step="0.5" type="number" value={wastePercent} onChange={(event) => handleNumberChange('wastePercent', event.target.value)} />
+              </label>
+              <label className="field-span-2">
+                <span>Paint coverage ({unit === 'm' ? 'm² per liter' : 'ft² per gallon'})</span>
+                <input min="0.1" step="0.1" type="number" value={paintCoverage} onChange={(event) => handleNumberChange('paintCoverage', event.target.value)} />
+              </label>
+            </div>
           </div>
+        )}
 
-          <div className="metric-hint">
-            <strong>Positioning note:</strong> similar tools already exist for flooring-only or paint-only cases.
-            The useful gap is a cleaner all-in-one room planning page with better presentation and unit handling.
+        {shape === 'circular' && (
+          <div className="panel input-panel">
+            <div className="panel-header">
+              <h2>Circular room</h2>
+              <p>Round room — enter radius and ceiling height.</p>
+            </div>
+            <div className="field-grid">
+              <label>
+                <span>Radius ({dimensionUnit})</span>
+                <input min="0" step="0.1" type="number" value={radius} onChange={(event) => handleShapeNumberChange('radius', event.target.value)} />
+              </label>
+              <label>
+                <span>Diameter ({dimensionUnit})</span>
+                <input min="0" step="0.1" type="number" value={formatNumber(radius * 2)} readOnly />
+              </label>
+              <label>
+                <span>Wall height ({dimensionUnit})</span>
+                <input min="0" step="0.1" type="number" value={height} onChange={(event) => handleNumberChange('height', event.target.value)} />
+              </label>
+              <label>
+                <span>Flooring waste (%)</span>
+                <input min="0" step="0.5" type="number" value={wastePercent} onChange={(event) => handleNumberChange('wastePercent', event.target.value)} />
+              </label>
+              <label className="field-span-2">
+                <span>Paint coverage ({unit === 'm' ? 'm² per liter' : 'ft² per gallon'})</span>
+                <input min="0.1" step="0.1" type="number" value={paintCoverage} onChange={(event) => handleNumberChange('paintCoverage', event.target.value)} />
+              </label>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="panel result-panel" ref={resultPanelRef}>
           <div className="panel-header inline-header">
@@ -491,7 +665,7 @@ function App() {
               </small>
             </article>
             <article>
-              <span>Perimeter</span>
+              <span>{shape === 'circular' ? 'Circumference' : shape === 'lshape' ? 'Outer perimeter' : 'Perimeter'}</span>
               <strong>{formatNumber(unit === 'm' ? results.perimeterM : results.perimeterFt)} {dimensionUnit}</strong>
               <small>
                 {formatNumber(results.perimeterM)} m / {formatNumber(results.perimeterFt)} ft
@@ -501,7 +675,11 @@ function App() {
               <span>Wall area</span>
               <strong>{formatNumber(unit === 'm' ? results.wallAreaSqM : results.wallAreaSqFt)} {areaUnit}</strong>
               <small>
-                Assumes four full walls, no door/window deduction.
+                {shape === 'circular'
+                  ? 'Curved wall only — no flat walls.'
+                  : shape === 'lshape'
+                    ? 'All outer walls — interior corner counted once.'
+                    : 'Four full walls, no door/window deduction.'}
               </small>
             </article>
             <article>
@@ -518,11 +696,13 @@ function App() {
                 {formatNumber(results.paintLiters)} L / {formatNumber(results.paintGallons)} gal
               </small>
             </article>
-            <article>
-              <span>Quick ratio</span>
-              <strong>{formatNumber(results.wallAreaSqM / Math.max(results.areaSqM, 0.01), 2)}×</strong>
-              <small>Wall area compared with floor area.</small>
-            </article>
+            {shape === 'rect' && (
+              <article>
+                <span>Quick ratio</span>
+                <strong>{formatNumber(results.wallAreaSqM / Math.max(results.areaSqM, 0.01), 2)}×</strong>
+                <small>Wall area compared with floor area.</small>
+              </article>
+            )}
           </div>
         </div>
       </section>

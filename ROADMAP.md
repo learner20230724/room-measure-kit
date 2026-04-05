@@ -45,8 +45,8 @@ Checked items are shipped. Unchecked are ideas or in-progress.
 
 ## M6 — Extended Room Support (ideas)
 
-- [ ] L-shaped room calculator (two rectangles combined)
-- [ ] Circular room / round floor area
+- [x] L-shaped room calculator (two rectangles combined)
+- [x] Circular room / round floor area
 - [ ] Room height input for more accurate wall area
 
 ## M7 — Theming & Polish (ideas)

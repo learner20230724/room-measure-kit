@@ -99,6 +99,59 @@
   gap: 10px;
 }
 
+.shape-toggle {
+  display: inline-grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 5px;
+  gap: 5px;
+  border-radius: 18px;
+  background: var(--surface-soft);
+}
+
+.shape-toggle button {
+  padding: 10px 14px;
+  border-radius: 13px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.82rem;
+  border: none;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.shape-toggle button.active {
+  background: var(--accent-strong);
+  color: white;
+  box-shadow: 0 8px 22px rgba(24, 98, 255, 0.22);
+}
+
+.shape-toggle button:hover:not(.active) {
+  background: var(--surface-soft-hover, color-mix(in srgb, var(--surface-soft) 70%, white));
+  color: var(--text);
+}
+
+.lshape-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 4px;
+}
+
+.lshape-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lshape-section h3 {
+  margin: 0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
 .ghost-button,
 .copy-button {
   padding: 11px 14px;
