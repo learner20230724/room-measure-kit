@@ -41,7 +41,7 @@ Checked items are shipped. Unchecked are ideas or in-progress.
 
 - [x] Shareable URL state (encode inputs in query string)
 - [x] Calculation history (localStorage)
-- [ ] Export result summary as PNG or PDF
+- [x] Export result summary as PNG or PDF
 
 ## M6 — Extended Room Support (ideas)
 

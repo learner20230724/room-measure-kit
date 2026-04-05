@@ -32,6 +32,7 @@ References checked before building:
 - estimate paint requirement from a coverage rate
 - copy a compact result summary for chat or docs
 - shareable links: changing any input updates the URL in-place; a "Share link" button copies a link that restores the exact room inputs when opened
+- export the Results panel as PNG or PDF with one click for easy sharing or archiving
 - keep the calculation logic covered by a small Vitest suite
 - ship as a static Vite + React app
 

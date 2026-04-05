@@ -1,4 +1,6 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
+import html2canvas from 'html2canvas'
+import { jsPDF } from 'jspdf'
 import './App.css'
 import {
   calculateResults,
@@ -79,6 +81,41 @@ function formatNumber(value: number, digits = 2) {
   }).format(value)
 }
 
+// ── PNG / PDF export ───────────────────────────────────────────────────────────
+
+async function exportResultsPng(element: HTMLElement, filename = 'room-measure.png') {
+  try {
+    const canvas = await html2canvas(element, {
+      backgroundColor: '#0f172a',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    })
+    const link = document.createElement('a')
+    link.download = filename
+    link.href = canvas.toDataURL('image/png')
+    link.click()
+  } catch (err) {
+    console.error('PNG export failed:', err)
+  }
+}
+
+function exportResultsPdf(element: HTMLElement, filename = 'room-measure.pdf') {
+  try {
+    html2canvas(element, { backgroundColor: '#0f172a', scale: 2, useCORS: true, logging: false }).then(
+      (canvas) => {
+        const imgData = canvas.toDataURL('image/png')
+        const isLandscape = canvas.width > canvas.height
+        const pdf = new jsPDF({ orientation: isLandscape ? 'landscape' : 'portrait', unit: 'px' })
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height)
+        pdf.save(filename)
+      },
+    )
+  } catch (err) {
+    console.error('PDF export failed:', err)
+  }
+}
+
 // URL state — encode/decode room inputs as query string params
 function encodeRoomState(params: {
   unit: Unit
@@ -146,6 +183,8 @@ function App() {
   const [calcHistory, setCalcHistory] = useState<HistoryEntry[]>(() => loadHistory())
   // Track last saved sig to avoid duplicate saves on re-render
   const lastSavedRef = useRef<string>('')
+  // Ref for the results panel (used by PNG/PDF export)
+  const resultPanelRef = useRef<HTMLDivElement>(null)
 
   const results = useMemo(() => {
     return calculateResults({
@@ -377,10 +416,28 @@ function App() {
           </div>
         </div>
 
-        <div className="panel result-panel">
-          <div className="panel-header">
-            <h2>Results</h2>
-            <p>Core room numbers plus finishing estimates.</p>
+        <div className="panel result-panel" ref={resultPanelRef}>
+          <div className="panel-header inline-header">
+            <div>
+              <h2>Results</h2>
+              <p>Core room numbers plus finishing estimates.</p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => resultPanelRef.current && exportResultsPng(resultPanelRef.current)}
+              >
+                PNG
+              </button>
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => resultPanelRef.current && exportResultsPdf(resultPanelRef.current)}
+              >
+                PDF
+              </button>
+            </div>
           </div>
 
           <div className="result-grid">
