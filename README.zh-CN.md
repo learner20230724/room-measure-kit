@@ -105,6 +105,11 @@ npm run preview
 
 MIT
 
+## 文档
+
+- [🚀 快速上手](./docs/quickstart.md) — 英文版 2 分钟上手指南
+- [🚀 快速上手（中文）](./docs/quickstart.zh-CN.md) — 中文版快速入门
+
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=learner20230724/room-measure-kit&type=Date)](https://www.star-history.com/#learner20230724/room-measure-kit&Date)

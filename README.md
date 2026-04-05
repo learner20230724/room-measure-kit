@@ -105,6 +105,11 @@ npm run preview
 - TypeScript
 - Vite
 
+## 文档
+
+- [🚀 快速上手](./docs/quickstart.md) — 2 分钟上手指南（英文）
+- [🚀 快速上手（中文）](./docs/quickstart.zh-CN.md) — 中文版快速入门
+
 ## License
 
 MIT

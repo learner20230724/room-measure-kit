@@ -109,6 +109,11 @@ For Chinese-first documentation, see [README.md](./README.md).
 
 MIT
 
+## Documentation
+
+- [🚀 Quickstart](./docs/quickstart.md) — 2-minute getting-started guide
+- [🚀 快速上手（中文）](./docs/quickstart.zh-CN.md) — Chinese version
+
 ## Other Resources
 
 - [CHANGELOG](./CHANGELOG.md) — version history
