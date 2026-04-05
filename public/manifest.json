@@ -1,0 +1,22 @@
+{
+  "name": "Room Measure Kit",
+  "short_name": "Room Measure",
+  "description": "A lightweight room area, perimeter, flooring, and paint calculator for quick renovation planning.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "lifestyle"],
+  "lang": "en",
+  "dir": "ltr"
+}
