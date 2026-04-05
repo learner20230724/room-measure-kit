@@ -397,6 +397,48 @@ input:focus {
   }
 }
 
+/* ── Theme toggle button ─────────────────────────────────────────────────────── */
+
+.theme-toggle {
+  font-size: 0.88rem;
+  padding: 0.42rem 0.9rem;
+  border-radius: 14px;
+}
+
+/* ── Dark-theme hero gradient override ─────────────────────────────────────── */
+
+html.theme-dark .hero-card {
+  background:
+    radial-gradient(circle at top left, rgba(91, 143, 255, 0.18), transparent 32%),
+    radial-gradient(circle at right, rgba(38, 211, 172, 0.10), transparent 28%),
+    var(--panel);
+}
+
+/* ── Result update animation ────────────────────────────────────────────────── */
+
+@keyframes result-pop {
+  0%   { opacity: 0.35; transform: translateY(3px) scale(0.985); }
+  60%  { opacity: 1;    transform: translateY(0px) scale(1.015); }
+  100% { opacity: 1;    transform: translateY(0px) scale(1); }
+}
+
+.result-grid > article {
+  animation: result-pop 320ms ease-out forwards;
+}
+
+/* stagger: nth-child starts at 1, so delay = (index-1) × 60ms, capped at 360ms */
+.result-grid > article:nth-child(1)  { animation-delay: 0ms; }
+.result-grid > article:nth-child(2)  { animation-delay: 60ms; }
+.result-grid > article:nth-child(3)  { animation-delay: 120ms; }
+.result-grid > article:nth-child(4)  { animation-delay: 180ms; }
+.result-grid > article:nth-child(5)  { animation-delay: 240ms; }
+.result-grid > article:nth-child(6)  { animation-delay: 300ms; }
+.result-grid > article:nth-child(7)  { animation-delay: 360ms; }
+.result-grid > article:nth-child(8)  { animation-delay: 420ms; }
+.result-grid > article:nth-child(n+9){ animation-delay: 480ms; }
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
+
 @media (max-width: 640px) {
   .app-shell {
     padding: 20px 14px 44px;

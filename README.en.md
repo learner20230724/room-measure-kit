@@ -24,7 +24,7 @@ References checked before building:
 
 ## What it does
 
-- switch between metric and imperial inputs, including paint coverage units
+- 🌗 dark / light theme toggle (toolbar button, theme preference persisted to localStorage)
 - try built-in room preset chips for faster demos and screenshots
 - calculate floor area and room perimeter
 - calculate wall area from optional wall height

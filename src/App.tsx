@@ -13,6 +13,26 @@ import {
 
 type NumericField = 'length' | 'width' | 'height' | 'wastePercent' | 'paintCoverage'
 
+// ── Theme ──────────────────────────────────────────────────────────────────────
+
+const THEME_KEY = 'room-measure-kit-theme'
+
+function getStoredTheme(): 'dark' | 'light' {
+  try {
+    return (localStorage.getItem(THEME_KEY) as 'dark' | 'light') ?? 'light'
+  } catch {
+    return 'light'
+  }
+}
+
+function applyThemeClass(theme: 'dark' | 'light') {
+  if (theme === 'dark') {
+    document.documentElement.classList.add('theme-dark')
+  } else {
+    document.documentElement.classList.remove('theme-dark')
+  }
+}
+
 // ── Calculation history ────────────────────────────────────────────────────────
 
 const HISTORY_KEY = 'room-measure-kit-history'
@@ -179,6 +199,7 @@ function App() {
   const [paintCoverage, setPaintCoverage] = useState(_initial?.paintCoverage ?? 10)
   const [copied, setCopied] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [theme, setTheme] = useState<'dark' | 'light'>(getStoredTheme)
   const [showHistory, setShowHistory] = useState(false)
   const [calcHistory, setCalcHistory] = useState<HistoryEntry[]>(() => loadHistory())
   // Track last saved sig to avoid duplicate saves on re-render
@@ -199,6 +220,12 @@ function App() {
 
   // Keep URL in sync with state (no history entry, just replace).
   // Skip first mount — only write URL when user changes an input.
+
+  // Apply theme on mount and whenever it changes.
+  useEffect(() => {
+    applyThemeClass(theme)
+    localStorage.setItem(THEME_KEY, theme)
+  }, [theme])
   const isFirstRenderRef = useRef(true)
   useEffect(() => {
     if (isFirstRenderRef.current) {
@@ -362,6 +389,14 @@ function App() {
           </div>
           <button className="copy-button" onClick={copyLink} type="button" title="Copy a shareable link with current room inputs">
             {linkCopied ? 'Link copied' : 'Share link'}
+          </button>
+          <button
+            className="ghost-button theme-toggle"
+            type="button"
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+            onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+          >
+            {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
           </button>
           <div className="preset-row" aria-label="Try a preset room">
             {presets.map((preset) => (
